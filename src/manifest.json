@@ -23,6 +23,9 @@
   "background": {
     "scripts": ["background.js"]
   },
+  "permissions": [
+    "contextMenus"
+  ],
   "options_page": "options.html",
   "manifest_version": 2,
   "minimum_chrome_version": "49"
