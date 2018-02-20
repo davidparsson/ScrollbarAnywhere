@@ -3,4 +3,3 @@ build/*
 /build
 .settings
 node_modules/
-todo.md

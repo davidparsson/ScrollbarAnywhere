@@ -27,6 +27,9 @@
     "default_title": "Click to toggle Scrollbar Anywhere"
   },
 
+  "permissions": [
+    "contextMenus"
+  ],
   "options_page": "options.html",
   "manifest_version": 2,
   "minimum_chrome_version": "49"

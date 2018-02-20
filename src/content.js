@@ -1,5 +1,6 @@
 
-ScrollbarAnywhere = (function() {
+//@ts-check
+var ScrollbarAnywhere = (function() {
 
   // === Options ===
 
@@ -11,6 +12,11 @@ ScrollbarAnywhere = (function() {
       options = msg.saveOptions
       options.cursor = (options.cursor == "true")
       options.notext = (options.notext == "true")
+      options.nolinks = (options.nolinks == "true")
+      options.nobuttons = (options.nobuttons == "true")
+      options.nolabels = (options.nolabels == "true")
+      options.noimages = (options.noimages == "true")
+      options.noembeds = (options.noembeds == "true")
       options.grab_and_drag = (options.grab_and_drag == "true")
       options.debug = (options.debug == "true")
       options.enabled = isEnabled(options.blacklist)
@@ -81,7 +87,6 @@ ScrollbarAnywhere = (function() {
   function vmag2(v)    { return v[0]*v[0] + v[1]*v[1] }
   function vmag(v)     { return Math.sqrt(v[0]*v[0] + v[1]*v[1]) }
   function vunit(v)    { return vdiv(vmag(v),v) }
-
 
   // Test if the given point is directly over text
   var isOverText = (function() {
@@ -176,23 +181,26 @@ ScrollbarAnywhere = (function() {
     }
   }
 
-  // Don't drag when left-clicking on these elements
-  const LBUTTON_OVERRIDE_TAGS = ['A','INPUT','SELECT','TEXTAREA','BUTTON','LABEL','OBJECT','EMBED']
-  const MBUTTON_OVERRIDE_TAGS = ['A']
-  const RBUTTON_OVERRIDE_TAGS = ['A','INPUT','TEXTAREA','OBJECT','EMBED']
-  function hasOverrideAncestor(e) {
+  // Don't drag when clicking on these elements
+  const MANDATORY_OVERRIDE_TAGS = ['INPUT', 'TEXTAREA', 'SELECT']
+  function hasMandatoryOverrideAncestor(e) {
     if (e == null) return false
-    if (options.button == LBUTTON && shouldOverrideLeftButton(e)) return true;
-    if (options.button == MBUTTON && MBUTTON_OVERRIDE_TAGS.some(function(tag) { return tag == e.tagName })) return true
-    if (options.button == RBUTTON && RBUTTON_OVERRIDE_TAGS.some(function(tag) { return tag == e.tagName })) return true
+    if (MANDATORY_OVERRIDE_TAGS.some(function(tag) { return tag == e.tagName })) return true
     return arguments.callee(e.parentNode)
   }
 
-  function shouldOverrideLeftButton(e) {
-    return LBUTTON_OVERRIDE_TAGS.some(function(tag) { return tag == e.tagName; }) || hasRoleButtonAttribute(e);
+  function hasOptionalOverrideAncestor(e) {
+    if (e == null) return false
+    if (options.nolinks && e.tagName == 'A') return true
+    if (options.nobuttons && (e.tagName == 'BUTTON' || hasRoleButtonAttribute(e))) return true
+    if (options.nolabels && e.tagName == 'LABEL') return true
+    if (options.noimages && e.tagName == 'IMG') return true
+    if (options.noembeds && (e.tagName == 'OBJECT' || e.tagName == 'EMBED')) return true
+    return arguments.callee(e.parentNode)
   }
 
   function hasRoleButtonAttribute(e) {
+    // FIXME: github has a lot of links that look like buttons...
     if (e.attributes && e.attributes.role) {
       return e.attributes.role.value === 'button';
     }
@@ -249,16 +257,16 @@ ScrollbarAnywhere = (function() {
     var scrollFixElement = null;
 
     function createScrollFix() {
-      scrollFixElement = document.createElement('div');
-      scrollFixElement.setAttribute('style', 'background: transparent none !important');
-      scrollFixElement.style.position = 'fixed';
-      scrollFixElement.style.top=0;
-      scrollFixElement.style.right=0;
-      scrollFixElement.style.bottom=0;
-      scrollFixElement.style.left=0;
-      scrollFixElement.style.zIndex=99999999;
-      scrollFixElement.style.display='block';
-      //scrollFixElement.style.borderRight='5px solid rgba(0,0,0,0.04)';
+      scrollFixElement = document.createElement("div");
+      scrollFixElement.setAttribute("style", "background: transparent none !important");
+      scrollFixElement.style.position = "fixed";
+      scrollFixElement.style.top = "0";
+      scrollFixElement.style.right = "0";
+      scrollFixElement.style.bottom = "0";
+      scrollFixElement.style.left = "0";
+      scrollFixElement.style.zIndex = "99999999";
+      scrollFixElement.style.display = "block";
+      //scrollFixElement.style.borderRight="5px solid rgba(0,0,0,0.04)";
     }
 
     function show() {
@@ -422,7 +430,7 @@ ScrollbarAnywhere = (function() {
   })()
 
 
-  Scroll = (function() {
+  var Scroll = (function() {
     var scrolling = false
     var element
     var scrollOrigin
@@ -586,7 +594,7 @@ ScrollbarAnywhere = (function() {
     switch (activity) {
 
     case GLIDE:
-      stopGlide(ev)
+      stopGlide()
       // fall through
 
     case STOP:
@@ -605,8 +613,18 @@ ScrollbarAnywhere = (function() {
         break
       }
 
-      if (hasOverrideAncestor(ev.target)) {
+      if (hasMandatoryOverrideAncestor(ev.target)) {
         debug("forbidden target element, ignoring",ev)
+        break
+      }
+
+      if (hasOptionalOverrideAncestor(ev.target)) {
+        debug("optional target element disabled, ignoring",ev)
+        break
+      }
+
+      if (options.notext && isOverText(ev)) {
+        debug("detected text node, ignoring")
         break
       }
 
@@ -618,11 +636,6 @@ ScrollbarAnywhere = (function() {
       dragElement = findInnermostScrollable(ev.target)
       if (!dragElement) {
         debug("no scrollable ancestor found, ignoring",ev)
-        break
-      }
-
-      if (options.notext && isOverText(ev)) {
-        debug("detected text node, ignoring")
         break
       }
 
@@ -692,7 +705,7 @@ ScrollbarAnywhere = (function() {
       Clipboard.unblockPaste()
       ScrollFix.hide()
       if (ev.button == 0) getSelection().removeAllRanges()
-      if (document.activeElement) document.activeElement.blur()
+      if (document.activeElement) document.activeElement.blur() // FIXME: a) is this ever running? b) is it working when it does run?
       if (ev.target) ev.target.focus()
       if (ev.button == options.button) activity = STOP
       break
@@ -705,7 +718,7 @@ ScrollbarAnywhere = (function() {
       break
 
     case GLIDE:
-      stopGlide(ev)
+      stopGlide()
       break
 
     default:

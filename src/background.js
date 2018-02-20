@@ -1,4 +1,5 @@
-defaultOptions = { "button":    2,
+// @ts-check
+var defaultOptions = { "button":    2,
                    "key_shift": false,
                    "key_ctrl":  false,
                    "key_alt":   false,
@@ -8,6 +9,11 @@ defaultOptions = { "button":    2,
                    "friction":  10,
                    "cursor":    true,
                    "notext":    false,
+                   "nolinks":   false,
+                   "nobuttons": false,
+                   "nolabels":  false,
+                   "noimages":  false,
+                   "noembeds":  false,
                    "grab_and_drag": false,
                    "debug":     false,
                    "blacklist": "",
@@ -25,9 +31,9 @@ function loadOptions() {
   return o
 }
 
-clients = {}
+var clients = {}
 
-chrome.extension.onConnect.addListener(function(port) {
+chrome.runtime.onConnect.addListener(function(port) {
   port.postMessage({ saveOptions: localStorage })
   var id = port.sender.tab.id + ":" + port.sender.frameId
   console.log("connect: "+id)
@@ -58,6 +64,39 @@ chrome.browserAction.onClicked.addListener(function(tab) {
     chrome.browserAction.setIcon({path:"icon16.png"})
   }
   saveOptions({o:'browser_enabled'})
+})
+
+// This does not require "permissions":["tabs"] becuase it only acts on its
+// current tab.
+chrome.contextMenus.create({
+  title:"Add site to SA blacklist",
+  contexts:["all"],
+  type:"normal",
+  onclick: (info, tab) => {
+    // 'document.location.hostname' here is a string containing our app ID.
+    // info.pageUrl and tab.url are both the full URL of this page, we only
+    // want the hostname, so use a dummy object (instead of requiring another
+    // library to parse the URL)
+    let dummy = document.createElement('a')
+    dummy.href = tab.url
+
+    // Use dummy.hostname for now; If @davidparsson agrees on issue #68, then
+    // this should change to use dummy.host as well.
+    let blacklist = localStorage["blacklist"].split('\n')
+
+    for (var i = blacklist.length - 1; i >= 0; i--) {
+      var blacklistEntry = blacklist[i].trim();
+      if (dummy.hostname === blacklistEntry) {
+        // no need to check subdomains when adding to list
+        console.log(dummy.hostname,'already in blacklist')
+        return
+      }
+    }
+    console.log('pushing',dummy.hostname,'to blacklist')
+    blacklist.push(dummy.hostname)
+    localStorage['blacklist'] = blacklist.join('\n')
+    saveOptions({o:'blacklist'})
+  }
 })
 
 // Inject content script into all existing tabs (doesn't work)
