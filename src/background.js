@@ -15,47 +15,58 @@ var defaultOptions = {
   browser_enabled: true,
 }
 
-for (var k in defaultOptions)
-  if (typeof localStorage[k] == 'undefined') localStorage[k] = defaultOptions[k]
+const options = {}
 
-function loadOptions() {
-  var o = {}
-  for (var k in defaultOptions) o[k] = localStorage[k]
-  return o
-}
+self.addEventListener('install', (event) => {
+  // chrome.storage.local.clear()
+  chrome.storage.local.get(null, function (loadedOptions) {
+    console.log('Loading stored options:', loadedOptions)
+    let optionsChanged = false
 
-var clients = {}
+    // TODO: Trigger offscreen conversion of window.localStorage to chrome.storage
+    for (var key in defaultOptions) {
+      if (typeof loadedOptions[key] == 'undefined') {
+        optionsChanged = true
+        options[key] = defaultOptions[key]
+      } else {
+        options[key] = loadedOptions[key]
+      }
+    }
 
-chrome.extension.onConnect.addListener(function (port) {
-  port.postMessage({ saveOptions: localStorage })
-  var id = port.sender.tab.id + ':' + port.sender.frameId
-  console.log('connect: ' + id)
-  clients[id] = port
-  port.onDisconnect.addListener(function () {
-    console.log('disconnect: ' + id)
-    delete clients[id]
+    if (optionsChanged) {
+      console.log('Loaded options changed.')
+      saveOptions(options)
+    }
+
+    console.log('Loaded options:', options)
+
+    // TODO: Remove unused options (not in defaultOptions)?
+    // for (var key in loadedOptions) {
+    //   if (typeof defaultOptions[key] == 'undefined') {
+    //     chrome.storage.local.remove(key)
+    //   }
+    // }
+
   })
 })
 
-function saveOptions(o) {
-  for (var k in o) {
-    localStorage[k] = o[k]
-  }
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim())
+})
 
-  for (var id in clients) {
-    clients[id].postMessage({ saveOptions: localStorage })
-  }
+function saveOptions(o) {
+  console.log('Saving options:', o)
+  chrome.storage.local.set(o)
 }
 
 chrome.action.onClicked.addListener(function (tab) {
-  if (localStorage['browser_enabled'] == 'true') {
-    localStorage['browser_enabled'] = 'false'
-    chrome.action.setIcon({ path: 'icon16dis.png' })
-  } else {
-    localStorage['browser_enabled'] = 'true'
+  options.browser_enabled = !(options.browser_enabled == true || options.browser_enabled == 'true')
+  if (options.browser_enabled) {
     chrome.action.setIcon({ path: 'icon16.png' })
+  } else {
+    chrome.action.setIcon({ path: 'icon16dis.png' })
   }
-  saveOptions({ o: 'browser_enabled' })
+  saveOptions({browser_enabled: options.browser_enabled})
 })
 
 // Inject content script into all existing tabs (doesn't work)

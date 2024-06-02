@@ -3,19 +3,39 @@ var ScrollbarAnywhere = (function () {
 
   var options = { debug: true, enabled: false }
 
-  var port = chrome.extension.connect()
-  port.onMessage.addListener(function (msg) {
-    if (msg.saveOptions) {
-      options = msg.saveOptions
-      options.cursor = options.cursor == 'true'
-      options.notext = options.notext == 'true'
-      options.grab_and_drag = options.grab_and_drag == 'true'
-      options.debug = options.debug == 'true'
-      options.enabled = isEnabled(options.blacklist)
-      options.browser_enabled = options.browser_enabled == 'true'
-      debug('saveOptions: ', options)
+  function parseLoadedOptions(loadedOptions) {
+    options = loadedOptions
+    options.cursor = isTrue(options.cursor)
+    options.notext = isTrue(options.notext)
+    options.grab_and_drag = isTrue(options.grab_and_drag)
+    options.debug = isTrue(options.debug)
+    options.enabled = isEnabled(options.blacklist)
+    options.browser_enabled = isTrue(options.browser_enabled)
+    debug('Loaded options: ', options)
+  }
+
+  function loadOptions() {
+    chrome.storage.local.get(null, function (loadedOptions) {
+      debug('Trying to load options', loadedOptions)
+      if (Object.keys(loadedOptions).length > 0) {
+        parseLoadedOptions(loadedOptions)
+      }
+    })
+  }
+
+  loadOptions()
+
+  chrome.storage.local.onChanged.addListener(function (changes) {
+    debug('Stored options changed changed', changes)
+    for (var key in changes) {
+      options[key] = changes[key].newValue
+      parseLoadedOptions(options)
     }
   })
+
+  function isTrue(value) {
+    return value == true || value == 'true'
+  }
 
   function isEnabled(blacklist) {
     if (!blacklist) {

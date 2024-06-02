@@ -57,12 +57,11 @@ function save() {
   o.grab_and_drag = $('grab_and_drag').checked
   o.debug = $('debug').checked
 
-  chrome.extension.getBackgroundPage().saveOptions(o)
+  console.log('Saving options:', o)
+  chrome.storage.local.set(o)
 }
 
-function load() {
-  var o = chrome.extension.getBackgroundPage().loadOptions()
-
+function load(o) {
   $('button').selectedIndex = o.button
 
   for (var i = 0; i < KEYS.length; i++) {
@@ -74,10 +73,16 @@ function load() {
   $('friction').value = o.friction
   $('blacklist').value = o.blacklist
 
-  $('cursor').checked = o.cursor == 'true'
-  $('notext').checked = o.notext == 'true'
-  $('grab_and_drag').checked = o.grab_and_drag == 'true'
-  $('debug').checked = o.debug == 'true'
+  $('cursor').checked = isTrue(o.cursor)
+  $('notext').checked = isTrue(o.notext)
+  $('grab_and_drag').checked = isTrue(o.grab_and_drag)
+  $('debug').checked = isTrue(o.debug)
+
+  console.log('Options loaded:', o)
+}
+
+function isTrue(value) {
+  return value == true || value == 'true'
 }
 
 var updateTimeoutId
@@ -97,7 +102,12 @@ function onUpdate(ev) {
 document.addEventListener(
   'DOMContentLoaded',
   function (ev) {
-    load()
+    chrome.storage.local.get(null, function (loadedOptions) {
+      console.log('Loaded stored options:', loadedOptions)
+      if (Object.keys(loadedOptions).length > 0) {
+        load(loadedOptions)
+      }
+    })
     ;['button', 'cursor', 'notext', 'debug', 'grab_and_drag'].forEach(
       function (id) {
         $(id).addEventListener('change', onUpdate, false)
