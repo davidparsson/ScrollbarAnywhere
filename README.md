@@ -1,6 +1,8 @@
 Scrollbar Anywhere
 ==================
 
+### **HELP WANTED:** This extension is becoming unusable due to Chrome's [deprecations for extensions](https://developer.chrome.com/docs/extensions/develop/migrate/what-is-mv3), and I don't have the time to fix this. See https://github.com/davidparsson/scrollbar-anywhere/pull/78 for progress.
+
 An extension for Google Chrome that makes it possible to to scroll pages as if the scrollbar was right under your pointer. Just press the configured mouse button and move the mouse.
 
 If you want grab-and-drag style scrolling, just set it up in the options.
