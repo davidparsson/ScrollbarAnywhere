@@ -1,4 +1,4 @@
-var defaultOptions = {
+const defaultOptions = {
   button: 2,
   key_shift: false,
   key_ctrl: false,
@@ -15,39 +15,9 @@ var defaultOptions = {
   browser_enabled: true,
 }
 
-const options = {}
-
-self.addEventListener('install', (event) => {
-  // chrome.storage.local.clear()
-  chrome.storage.local.get(null, function (loadedOptions) {
-    console.log('Loading stored options:', loadedOptions)
-    let optionsChanged = false
-
-    // TODO: Trigger offscreen conversion of window.localStorage to chrome.storage
-    for (var key in defaultOptions) {
-      if (typeof loadedOptions[key] == 'undefined') {
-        optionsChanged = true
-        options[key] = defaultOptions[key]
-      } else {
-        options[key] = loadedOptions[key]
-      }
-    }
-
-    if (optionsChanged) {
-      console.log('Loaded options changed.')
-      saveOptions(options)
-    }
-
-    console.log('Loaded options:', options)
-
-    // TODO: Remove unused options (not in defaultOptions)?
-    // for (var key in loadedOptions) {
-    //   if (typeof defaultOptions[key] == 'undefined') {
-    //     chrome.storage.local.remove(key)
-    //   }
-    // }
-
-  })
+self.addEventListener('install', async (event) => {
+  const loadedOptions = await chrome.storage.local.get('browser_enabled')
+  updateExtensionIcon(loadedOptions.browser_enabled !== false)
 })
 
 self.addEventListener('activate', (event) => {
@@ -59,14 +29,78 @@ function saveOptions(o) {
   chrome.storage.local.set(o)
 }
 
-chrome.action.onClicked.addListener(function (tab) {
-  options.browser_enabled = !(options.browser_enabled == true || options.browser_enabled == 'true')
-  if (options.browser_enabled) {
+async function getOptionsFromLocalStorage() {
+  console.log('Converting options from localStorage...')
+
+  await chrome.offscreen.createDocument({
+    url: 'offscreen.html',
+    reasons: ['DOM_PARSER'],
+    justification: 'Preserve options from previous versions',
+  })
+
+  const oldOptions = await chrome.runtime.sendMessage({
+    action: 'getOptionsFromLocalStorage',
+  })
+  console.log('Old options:', oldOptions)
+
+  await chrome.offscreen.closeDocument()
+
+  console.log('Restored options from localStorage:', oldOptions)
+  return oldOptions
+}
+
+function sanitizeOptions(loadedOptions) {
+  const sanitizedOptions = {}
+  for (var key in defaultOptions) {
+    if (typeof loadedOptions[key] == 'undefined') {
+      sanitizedOptions[key] = defaultOptions[key]
+    } else {
+      sanitizedOptions[key] = loadedOptions[key]
+    }
+  }
+  return sanitizedOptions
+}
+
+chrome.runtime.onInstalled.addListener(async (details) => {
+  console.log('Extension installed:', details)
+  let loadedOptions = await chrome.storage.local.get(null)
+
+  if (
+    details.reason === chrome.runtime.OnInstalledReason.UPDATE &&
+    Object.keys(loadedOptions).length === 0
+  ) {
+    loadedOptions = await getOptionsFromLocalStorage()
+  }
+
+  const options = sanitizeOptions(loadedOptions)
+
+  saveOptions(options)
+})
+
+chrome.runtime.onStartup.addListener(() => {
+  console.log('Extension started')
+})
+
+function updateExtensionIcon(enabled) {
+  if (enabled) {
     chrome.action.setIcon({ path: 'icon16.png' })
   } else {
     chrome.action.setIcon({ path: 'icon16dis.png' })
   }
-  saveOptions({browser_enabled: options.browser_enabled})
+}
+
+chrome.action.onClicked.addListener(async (tab) => {
+  const loadedOptions = await chrome.storage.local.get('browser_enabled')
+  const browser_enabled = !loadedOptions.browser_enabled
+  saveOptions({ browser_enabled })
+})
+
+chrome.storage.local.onChanged.addListener(function (changes, namespace) {
+  for (var key in changes) {
+    if (key === 'browser_enabled') {
+      updateExtensionIcon(changes[key].newValue)
+    }
+  }
 })
 
 // Inject content script into all existing tabs (doesn't work)
