@@ -10,11 +10,11 @@ The extension is based on the [Wet Banana extension](https://github.com/jedediah
 
 ### 3.0
 
-- Support new versions of Chrome with Manifest V3
+- Support future versions of Chrome with Manifest V3.
 
 ### 2.17
 
-- Prevent the configured extra keys to interfere with scrolling.
+- Prevent the configured extra keys from interfering with scrolling.
 
 ### 2.16
 
