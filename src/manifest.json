@@ -1,6 +1,6 @@
 {
   "name": "Scrollbar Anywhere",
-  "version": "2.17",
+  "version": "3.0",
   "description": "Click and drag anywhere to scroll the page.",
   "icons": {
     "128": "icon128.png",
@@ -10,24 +10,21 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "<all_urls>"
-      ],
-      "js": [
-        "content.js"
-      ],
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
       "all_frames": true,
       "run_at": "document_start"
     }
   ],
   "background": {
-    "scripts": ["background.js"]
+    "service_worker": "background.js",
+    "type": "module"
   },
-  "browser_action": {
+  "action": {
     "default_title": "Click to toggle Scrollbar Anywhere"
   },
-
+  "permissions": ["storage", "offscreen"],
   "options_page": "options.html",
-  "manifest_version": 2,
+  "manifest_version": 3,
   "minimum_chrome_version": "49"
 }
