@@ -113,17 +113,3 @@ chrome.storage.local.onChanged.addListener(function (changes, namespace) {
     }
   }
 })
-
-// Inject content script into all existing tabs (doesn't work)
-// This functionality requires
-//  "permissions": ["tabs"]
-// in manifest.json
-/*
-chrome.windows.getAll({populate:true}, function(wins) {
-  wins.forEach(function(win) {
-    win.tabs.forEach(function(tab) {
-      chrome.tabs.executeScript(tab.id,{file:"content.js",allFrames:true});
-    })
-  })
-})
-*/
