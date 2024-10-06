@@ -14,6 +14,14 @@ var ScrollbarAnywhere = (function () {
     debug('Loaded options: ', options)
   }
 
+  chrome.storage.local.onChanged.addListener(function (changes) {
+    debug('Stored options changed changed', changes)
+    for (var key in changes) {
+      options[key] = changes[key].newValue
+      parseLoadedOptions(options)
+    }
+  })
+
   async function loadOptions() {
     const loadedOptions = await chrome.storage.local.get(null)
     debug('Trying to load options', loadedOptions)
@@ -23,14 +31,6 @@ var ScrollbarAnywhere = (function () {
   }
 
   loadOptions()
-
-  chrome.storage.local.onChanged.addListener(function (changes) {
-    debug('Stored options changed changed', changes)
-    for (var key in changes) {
-      options[key] = changes[key].newValue
-      parseLoadedOptions(options)
-    }
-  })
 
   function isTrue(value) {
     return value == true || value == 'true'
