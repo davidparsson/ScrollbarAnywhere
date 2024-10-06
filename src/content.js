@@ -14,13 +14,12 @@ var ScrollbarAnywhere = (function () {
     debug('Loaded options: ', options)
   }
 
-  function loadOptions() {
-    chrome.storage.local.get(null, function (loadedOptions) {
-      debug('Trying to load options', loadedOptions)
-      if (Object.keys(loadedOptions).length > 0) {
-        parseLoadedOptions(loadedOptions)
-      }
-    })
+  async function loadOptions() {
+    const loadedOptions = await chrome.storage.local.get(null)
+    debug('Trying to load options', loadedOptions)
+    if (Object.keys(loadedOptions).length > 0) {
+      parseLoadedOptions(loadedOptions)
+    }
   }
 
   loadOptions()
