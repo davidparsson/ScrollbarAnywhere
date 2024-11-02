@@ -8,6 +8,10 @@ The extension is based on the [Wet Banana extension](https://github.com/jedediah
 
 ## Change Log
 
+### 3.1
+
+- Allows the extension to be properly enabled when disabled.
+
 ### 3.0
 
 - Support future versions of Chrome with Manifest V3.
