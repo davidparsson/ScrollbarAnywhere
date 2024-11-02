@@ -102,7 +102,7 @@ function setExtensionIcon(enabled) {
 }
 
 chrome.action.onClicked.addListener(async (tab) => {
-  const browserEnabled = !getBrowserEnabled()
+  const browserEnabled = !(await getBrowserEnabled())
   saveOptions({ browser_enabled: browserEnabled })
 })
 
